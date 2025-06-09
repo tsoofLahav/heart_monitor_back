@@ -18,7 +18,7 @@ def setup_video_route(app):
     @app.route('/process_video', methods=['POST'])
     def process_video():
         try:
-            # ---------- Part 1: Get video ----------
+            # ---------- Part 1: Get video -----------
             # 🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍🤍
             file = request.files.get('video')
             if not file:
