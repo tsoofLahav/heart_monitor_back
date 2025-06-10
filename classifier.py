@@ -6,7 +6,7 @@ from io import BytesIO
 
 url = "https://heart1monitor0storage.blob.core.windows.net/models/model2_classifier.pt"
 
-# ---------- Define the model class ----------
+# ---------- Define the model class ---------
 class SimpleMLP(nn.Module):
     def __init__(self, input_size):
         super().__init__()
