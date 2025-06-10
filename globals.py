@@ -3,7 +3,7 @@ raw_buffer = []
 peak_history = []
 round_count = 0
 prediction_buffer = []
-testing_mode = True
+testing_mode = False
 ave_gap = None
 
 # data_route
