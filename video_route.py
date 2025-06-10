@@ -2,12 +2,10 @@ import numpy as np
 from flask import Flask, request, jsonify
 import os
 import logging
-from classifier import load_mlp_model
-from reconstruction import load_reconstruction_model
 
 from video_edit import process_video_frames           # part 2: video -> signal
 from filter_and_peaks import denoise_ppg                        # part 4: filter + detect
-from predict_model import predict_future_sequence, load_predictor_model           # part 6: prediction
+from predict_model import predict_future_sequence        # part 6: prediction
 from data_route import save_prediction_to_db          # part 7: store
 import globals
 
@@ -42,9 +40,6 @@ def setup_video_route(app):
             if globals.round_count == 1:
                 globals.raw_buffer.extend(intensities)  # first 5s only
                 # loading the models at first round
-                load_mlp_model()
-                load_reconstruction_model()
-                load_predictor_model()
                 return jsonify({'loading': True})
             else:
                 if globals.round_count == 2:
@@ -146,6 +141,7 @@ def setup_video_route(app):
             # ---------- Part 8: Save + send to frontend ----------
             # ❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️
             bpm = 60.0 / globals.ave_gap
+            save_prediction_to_db(future_peaks)
 
             return jsonify({
                 'prediction': future_peaks_shifted,

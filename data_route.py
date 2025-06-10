@@ -4,6 +4,9 @@ import os
 import threading
 import globals
 import json
+from classifier import load_mlp_model
+from reconstruction import load_reconstruction_model
+from predict_model import load_predictor_model
 
 # --- Setup Blueprint ----
 data_bp = Blueprint("data", __name__)
@@ -26,6 +29,9 @@ def get_db_connection():
 def start_session():
     conn = get_db_connection()
     cursor = conn.cursor()
+    load_mlp_model()
+    load_reconstruction_model()
+    load_predictor_model()
 
     # Get next session ID (highest + 1)
     cursor.execute("SELECT ISNULL(MAX(session_id), 0) + 1 FROM sessions")
