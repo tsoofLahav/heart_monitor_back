@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.signal import butter, sosfiltfilt, find_peaks
+
+import globals
 from classifier import classify_signal_segment
 from reconstruction import reconstruct_missing
 
@@ -41,6 +43,8 @@ def denoise_ppg(raw_signal, fs):
     # Step 2: Regularization
     normalized_signal = regularize_signal(filtered_signal)
 
+    avg_height = sum(x for x in normalized_signal if x > 0) / sum(1 for x in normalized_signal if x > 0)
+
     # Step 3: Classification of 2-second segments
     window_size = int(2 * fs)
     num_windows = len(normalized_signal) // window_size
@@ -78,7 +82,11 @@ def denoise_ppg(raw_signal, fs):
             normalized_signal[start:end] = reconstructed_segment[start:end]
 
     # Step 5: Peak Detection
-    peak_indices, _ = find_peaks(normalized_signal, distance=int(0.3 * fs), height=0)  # >300ms between beats
+    if globals.ave_gap is None:
+        distance = 0.5 * fs
+    else:
+        distance = (globals.ave_gap*0.75) * fs
+    peak_indices, _ = find_peaks(normalized_signal, distance=distance, height=avg_height*0.5)  # >300ms between beats
     peak_times = (np.array(peak_indices) / fs).tolist()
 
     return normalized_signal, filtered_signal, False, peak_times

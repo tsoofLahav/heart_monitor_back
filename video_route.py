@@ -88,6 +88,7 @@ def setup_video_route(app):
 
             # Step 1: Convert past peaks to intervals
             past_intervals = [t2 - t1 for t1, t2 in zip(past_peaks[:-1], past_peaks[1:])]
+            globals.ave_gap = np.mean(past_intervals)
 
             # Step 2: Predict intervals
             predicted_intervals = predict_future_sequence(past_intervals)
@@ -144,8 +145,7 @@ def setup_video_route(app):
 
             # ---------- Part 8: Save + send to frontend ----------
             # ❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️❤️
-            save_prediction_to_db(future_peaks)
-            bpm = 60.0 / np.mean(past_intervals)
+            bpm = 60.0 / globals.ave_gap
 
             return jsonify({
                 'prediction': future_peaks_shifted,

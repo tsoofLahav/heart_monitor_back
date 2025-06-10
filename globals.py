@@ -4,6 +4,7 @@ peak_history = []
 round_count = 0
 prediction_buffer = []
 testing_mode = True
+ave_gap = None
 
 # data_route
 session_id = None
