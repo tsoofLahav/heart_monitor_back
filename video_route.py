@@ -4,7 +4,6 @@ import os
 import logging
 from classifier import load_mlp_model
 from reconstruction import load_reconstruction_model
-import subprocess
 
 from video_edit import process_video_frames           # part 2: video -> signal
 from filter_and_peaks import denoise_ppg                        # part 4: filter + detect
@@ -41,11 +40,6 @@ def setup_video_route(app):
             # ---------- Part 3: Concatenate raw signal (10s sliding window) ----------
             # 🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡🧡
             if globals.round_count == 1:
-                try:
-                    import torch
-                except ImportError:
-                    subprocess.run(["pip", "install", "torch"], check=True)
-                    import torch
                 globals.raw_buffer.extend(intensities)  # first 5s only
                 # loading the models at first round
                 load_mlp_model()
