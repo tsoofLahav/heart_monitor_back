@@ -23,17 +23,7 @@ def regularize_signal(signal):
 
 def denoise_ppg(raw_signal, fs):
     """
-    Denoise PPG signal, detect if it's readable, and find peaks.
-
-    Args:
-        raw_signal (list or np.array): 10 second raw PPG signal.
-        fs (int): Frames per second.
-
-    Returns:
-        clean_signal (np.array): Cleaned or reconstructed signal.
-        filtered_signal (np.array): Bandpass-filtered signal.
-        not_reading (bool): Whether the signal is unreadable.
-        peaks (list): Detected peaks (absolute times in seconds).
+    Denoise PPG signal, do simple quality check per segment, reconstruct if needed, detect peaks.
     """
     raw_signal = np.array(raw_signal)
 
@@ -43,50 +33,49 @@ def denoise_ppg(raw_signal, fs):
     # Step 2: Regularization
     normalized_signal = regularize_signal(filtered_signal)
 
-    avg_height = sum(x for x in normalized_signal if x > 0) / sum(1 for x in normalized_signal if x > 0)
-
-    # Step 3: Classification of 2-second segments
+    # Step 3: Segment-wise quality check
     window_size = int(2 * fs)
     num_windows = len(normalized_signal) // window_size
+    bad_windows = []
 
-    classifications = []
     for i in range(num_windows):
         start = i * window_size
         end = start + window_size
         segment = normalized_signal[start:end]
-        label = classify_signal_segment(segment)  # 0 = bad, 1 = good
-        classifications.append((i, label))
 
-    # Step 4: Decision Logic
-    bad_windows = [i for i, label in classifications if label == 0]
+        std = np.std(segment)
+        amp = np.max(segment) - np.min(segment)
+        avg_height = np.mean([x for x in segment if x > 0]) if any(x > 0 for x in segment) else 0
 
+        if std < 0.05 or amp < 0.5 or avg_height < 0.1:
+            bad_windows.append(i)
+
+    # Step 4: Decision logic
     if len(bad_windows) >= 2:
         return None, filtered_signal, True, []
 
     if len(bad_windows) == 1:
         bad_window = bad_windows[0]
-        bad_start_sec = bad_window * 2
+        bad_start = bad_window * window_size
+        bad_end = bad_start + window_size
 
-        if bad_start_sec >= 4:
-            start = bad_window * window_size
-            end = start + window_size
+        # Zero out bad part
+        corrupted_signal = normalized_signal.copy()
+        corrupted_signal[bad_start:bad_end] = 0.0
 
-            # Zero out bad part
-            corrupted_signal = normalized_signal.copy()
-            corrupted_signal[start:end] = 0.0
+        # Reconstruct
+        reconstructed = reconstruct_missing(corrupted_signal)
 
-            # Reconstruct
-            reconstructed_segment = reconstruct_missing(corrupted_signal)
+        # Replace only that window
+        normalized_signal[bad_start:bad_end] = reconstructed[bad_start:bad_end]
 
-            # Replace
-            normalized_signal[start:end] = reconstructed_segment[start:end]
+    # Step 5: Peak detection
+    all_positive = [x for x in normalized_signal if x > 0]
+    avg_height = sum(all_positive) / len(all_positive) if all_positive else 0
+    distance = (globals.ave_gap * 0.75 * fs) if globals.ave_gap else 0.5 * fs
 
-    # Step 5: Peak Detection
-    if globals.ave_gap is None:
-        distance = 0.5 * fs
-    else:
-        distance = (globals.ave_gap*0.75) * fs
-    peak_indices, _ = find_peaks(normalized_signal, distance=distance, height=avg_height*0.5)  # >300ms between beats
-    peak_times = (np.array(peak_indices) / fs).tolist()
+    peaks, _ = find_peaks(normalized_signal, distance=distance, height=avg_height * 0.5)
+    peak_times = (np.array(peaks) / fs).tolist()
 
     return normalized_signal, filtered_signal, False, peak_times
+
