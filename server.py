@@ -1,8 +1,9 @@
 from flask import Flask, jsonify
 from video_route import setup_video_route
 import os
-from predict_model import load_predictor_model
 import globals
+import random
+from create_sound_and_vid import generate_heartbeat_video
 
 
 app = Flask(__name__)
@@ -16,17 +17,45 @@ setup_video_route(app)
 def health():
     return jsonify({"status": "OK"}), 200
 
-# Load models route (for local testing)
-@app.route('/load_models', methods=['GET'])
-def load_models():
-    globals.reset_all()
-    load_predictor_model()
-    return jsonify({"status": "Models loaded"}), 200
-
 # Reset globals route
 @app.route('/end', methods=['POST'])
 def end_session():
-    return jsonify({"predictions": globals.saved_predictions}), 200
+    try:
+        # Step 1: Get real peaks from global
+        real_peaks = globals.round_peaks.copy()
+        duration = globals.round_count * 10
+
+        # Step 2: Create noisy version (same length, slight jitter)
+        noisy_peaks = []
+        for p in real_peaks:
+            jittered = round(p + random.uniform(-0.1, 0.1), 2)
+            jittered = max(0.0, min(jittered, duration))
+            noisy_peaks.append(jittered)
+
+        # Step 3: Generate both videos
+        os.makedirs("static", exist_ok=True)
+        real_path = "static/real_heartbeat.mp4"
+        fake_path = "static/fake_heartbeat.mp4"
+
+        generate_heartbeat_video(real_peaks, duration, output_path=real_path)
+        generate_heartbeat_video(noisy_peaks, duration, output_path=fake_path)
+
+        # Step 4: Prepare and send metadata
+        metadata = {
+            "peaks_count": len(real_peaks),
+            "real_video_url": "/static/real_heartbeat.mp4",
+            "fake_video_url": "/static/fake_heartbeat.mp4"
+        }
+
+        # Step 5: Reset global session state
+        globals.reset_all()
+
+        return jsonify(metadata), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

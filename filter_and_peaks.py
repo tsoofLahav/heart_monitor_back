@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import butter, sosfiltfilt, find_peaks
+from scipy.signal import butter, sosfiltfilt, find_peaks as scipy_find_peaks
 import globals
 from unreadable_detection import is_good_quality
 
@@ -21,7 +21,8 @@ def regularize_signal(signal):
 
 def denoise_ppg(raw_signal, fs):
     """
-    Denoise PPG signal, check signal quality via beat correlation, and detect peaks.
+    Denoise PPG signal, check signal quality via beat correlation.
+    Returns: (normalized_signal, filtered_signal, not_reading)
     """
     raw_signal = np.array(raw_signal)
 
@@ -31,19 +32,30 @@ def denoise_ppg(raw_signal, fs):
     # Step 2: Regularization
     normalized_signal = regularize_signal(filtered_signal)
 
-    # Step 3: New quality check
+    # Step 3: Signal quality check
     if not is_good_quality(normalized_signal):
-        return None, filtered_signal, True, []
+        return None, filtered_signal, True
 
-    # Step 4: Peak detection
-    all_positive = [x for x in normalized_signal if x > 0]
-    avg_height = sum(all_positive) / len(all_positive) if all_positive else 0
-    distance = (globals.ave_gap * 0.75 * fs) if globals.ave_gap else 0.5 * fs
+    return normalized_signal, filtered_signal, False
 
-    peaks, _ = find_peaks(normalized_signal, distance=distance, height=avg_height * 0.5)
-    peak_times = (np.array(peaks) / fs).tolist()
 
-    return normalized_signal, filtered_signal, False, peak_times
+def find_peaks(signal, fs=None):
+    """
+    Find peaks in the signal. If fs is provided, uses dynamic distance.
+    Returns list of peak times in seconds.
+    """
+    signal = np.array(signal)
+
+    all_positive = signal[signal > 0]
+    avg_height = np.mean(all_positive) if len(all_positive) > 0 else 0
+    distance = (globals.ave_gap * 0.75 * fs) if globals.ave_gap and fs else 0.5 * fs if fs else None
+
+    peaks, _ = scipy_find_peaks(signal, distance=distance, height=avg_height * 0.5)
+
+    if fs:
+        return (peaks / fs).tolist()
+    else:
+        return peaks.tolist()
 
 
 
