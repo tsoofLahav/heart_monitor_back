@@ -17,7 +17,7 @@ setup_video_route(app)
 def health():
     return jsonify({"status": "OK"}), 200
 
-# Reset globals route
+# Reset globals route.
 @app.route('/end', methods=['POST'])
 def end_session():
     try:
