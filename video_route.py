@@ -37,7 +37,7 @@ def setup_video_route(app):
             # ---------- Part 2: signal process ----------
             last_sec = globals.last_sec
             if last_sec is not None:
-                intensities = last_sec + intensities
+                intensities = np.concatenate([last_sec, intensities])
             clean_signal, filtered_signal, not_reading = denoise_ppg(intensities, fps)
 
             globals.last_sec = clean_signal[-fps:]
