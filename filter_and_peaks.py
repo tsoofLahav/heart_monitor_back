@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.signal import butter, sosfiltfilt, find_peaks as scipy_find_peaks
-import globals
 from unreadable_detection import is_good_quality
 
 
@@ -48,9 +47,8 @@ def find_peaks(signal, fs=None):
 
     all_positive = signal[signal > 0]
     avg_height = np.mean(all_positive) if len(all_positive) > 0 else 0
-    distance = (globals.ave_gap * 0.75 * fs)
 
-    peaks, _ = scipy_find_peaks(signal, distance=distance, height=avg_height * 0.5)
+    peaks, _ = scipy_find_peaks(signal, distance=0.25, height=avg_height * 0.5)
 
     if fs:
         return (peaks / fs).tolist()
