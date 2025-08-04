@@ -6,6 +6,7 @@ testing_mode = False
 round_count = 0
 round_peaks = []
 last_sec = None
+ave_gap = 0.7
 
 
 def reset_all():
