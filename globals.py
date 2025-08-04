@@ -8,7 +8,6 @@ round_peaks = []
 last_sec = None
 ave_gap = 0.7
 
-
 def reset_all():
     global round_count, round_peaks, last_sec
     round_count = 0
