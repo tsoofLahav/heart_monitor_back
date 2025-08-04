@@ -47,8 +47,9 @@ def find_peaks(signal, fs=None):
 
     all_positive = signal[signal > 0]
     avg_height = np.mean(all_positive) if len(all_positive) > 0 else 0
+    distance = int(fs*0.25)
 
-    peaks, _ = scipy_find_peaks(signal, distance=0.25, height=avg_height * 0.5)
+    peaks, _ = scipy_find_peaks(signal, distance=distance, height=avg_height * 0.5)
 
     if fs:
         return (peaks / fs).tolist()
