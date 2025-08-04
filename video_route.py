@@ -1,4 +1,4 @@
-import numpy as np
+
 from flask import Flask, request, jsonify, send_file, make_response
 import os
 import logging
