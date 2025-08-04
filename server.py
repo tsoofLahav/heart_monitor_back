@@ -3,7 +3,6 @@ from video_route import setup_video_route
 import os
 import globals
 import random
-from create_sound_and_vid import generate_heartbeat_video
 
 
 app = Flask(__name__)
@@ -17,6 +16,7 @@ setup_video_route(app)
 def health():
     return jsonify({"status": "OK"}), 200
 
+
 # Reset globals route.
 @app.route('/end', methods=['POST'])
 def end_session():
@@ -25,29 +25,22 @@ def end_session():
         real_peaks = globals.round_peaks.copy()
         duration = globals.round_count * 10
 
-        # Step 2: Create noisy version (same length, slight jitter)
+        # Step 2: Create noisy (fake) version with jitter
         noisy_peaks = []
         for p in real_peaks:
             jittered = round(p + random.uniform(-0.1, 0.1), 2)
             jittered = max(0.0, min(jittered, duration))
             noisy_peaks.append(jittered)
 
-        # Step 3: Generate both videos
-        os.makedirs("static", exist_ok=True)
-        real_path = "static/real_heartbeat.mp4"
-        fake_path = "static/fake_heartbeat.mp4"
-
-        generate_heartbeat_video(real_peaks, duration, output_path=real_path)
-        generate_heartbeat_video(noisy_peaks, duration, output_path=fake_path)
-
-        # Step 4: Prepare and send metadata
+        # Step 3: Prepare response metadata
         metadata = {
             "peaks_count": len(real_peaks),
-            "real_video_url": "/static/real_heartbeat.mp4",
-            "fake_video_url": "/static/fake_heartbeat.mp4"
+            "real_peaks": real_peaks,
+            "fake_peaks": noisy_peaks,
+            "duration": duration
         }
 
-        # Step 5: Reset global session state
+        # Step 4: Reset global session state
         globals.reset_all()
 
         return jsonify(metadata), 200
