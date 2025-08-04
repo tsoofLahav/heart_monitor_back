@@ -16,4 +16,4 @@ def reset_all():
 
 
 def add_to_round_peaks(peaks):
-    round_peaks.extand([x + 10*round_count for x in peaks])
+    round_peaks.extend([x + 10*round_count for x in peaks])
