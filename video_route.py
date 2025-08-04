@@ -45,7 +45,7 @@ def setup_video_route(app):
             if not_reading:
                 return jsonify({'not_reading': True})
 
-            peaks_in_window = find_peaks(clean_signal)
+            peaks_in_window = find_peaks(clean_signal, fps)
             final_peaks = [x for x in peaks_in_window if 0.5 <= x <= 10.5]
 
             # 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
