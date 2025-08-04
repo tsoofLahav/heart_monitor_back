@@ -1,70 +1,69 @@
-from moviepy.editor import VideoClip, AudioClip
 import numpy as np
-import cv2
+from PIL import Image, ImageDraw
 import os
+import subprocess
+from scipy.io.wavfile import write as write_wav
 
+def generate_ecg_frame(signal, width=600, height=400):
+    img = Image.new('RGB', (width, height), 'black')
+    draw = ImageDraw.Draw(img)
+    mid_y = height // 2
+    scale = 100
 
-def generate_heartbeat_video(peaks, duration, output_path="heartbeat_video.mp4"):
-    """
-    Generates a heartbeat monitor-style video with scrolling ECG line and synced beep sound.
+    for x in range(1, len(signal)):
+        y1 = mid_y - int(signal[x - 1] * scale)
+        y2 = mid_y - int(signal[x] * scale)
+        draw.line([(x - 1, y1), (x, y2)], fill='green', width=2)
 
-    Args:
-        peaks (list of float): Times (in seconds) of heartbeat peaks.
-        duration (float): Total duration of the video.
-        output_path (str): Path to save the generated video.
-    """
-    width, height = 600, 400
+    return img
+
+def generate_beep_wave(peaks, duration, rate=44100):
+    t = np.linspace(0, duration, int(rate * duration))
+    signal = np.zeros_like(t)
+    for p in peaks:
+        idx = int(p * rate)
+        if idx + 500 < len(signal):  # 500 samples ~ 0.01s
+            signal[idx:idx+500] += 0.5 * np.sin(2 * np.pi * 880 * np.linspace(0, 0.01, 500))
+    return (signal * 32767).astype(np.int16)
+
+def generate_heartbeat_video_safe(peaks, duration, output_path="heartbeat_video.mp4"):
     fps = 24
-    signal_length = width  # one value per horizontal pixel
+    frame_count = int(duration * fps)
+    signal = np.zeros(600)
+    pulse = np.exp(-((np.linspace(0, 1, 30) - 0.5) * 30) ** 2)
 
-    # Generate a single ECG-like pulse shape
-    def generate_ecg_pulse(length=30):
-        t = np.linspace(0, 1, length)
-        pulse = np.exp(-((t - 0.2) * 20) ** 2) * 1.0 \
-                - np.exp(-((t - 0.5) * 30) ** 2) * 0.5 \
-                + np.exp(-((t - 0.7) * 20) ** 2) * 0.3
-        return pulse
+    frames_dir = "frames"
+    os.makedirs(frames_dir, exist_ok=True)
 
-    pulse_shape = generate_ecg_pulse()
-    signal_buffer = np.zeros(signal_length)
-
-    def make_frame(t):
-        nonlocal signal_buffer
-        frame = np.zeros((height, width, 3), dtype=np.uint8)  # black background
-
-        # If a peak just occurred, insert pulse at the end
+    for i in range(frame_count):
+        t = i / fps
         if any(abs(t - p) < 1 / fps for p in peaks):
-            insert_pos = -len(pulse_shape)
-            signal_buffer[insert_pos:] += pulse_shape
+            signal[-len(pulse):] += pulse
 
-        # Shift signal left
-        signal_buffer = np.roll(signal_buffer, -1)
-        signal_buffer[-1] = 0  # Clear the newly inserted position
+        signal = np.roll(signal, -1)
+        signal[-1] = 0
+        img = generate_ecg_frame(signal)
+        img.save(f"{frames_dir}/frame_{i:04d}.png")
 
-        # Draw ECG line
-        ecg_y = height // 2 - (signal_buffer * 100).astype(int)  # scale & center
-        for x in range(1, width):
-            y1, y2 = ecg_y[x - 1], ecg_y[x]
-            if 0 <= y1 < height and 0 <= y2 < height:
-                cv2.line(frame, (x - 1, y1), (x, y2), (0, 255, 0), 2)
+    # Generate beep audio
+    audio = generate_beep_wave(peaks, duration)
+    write_wav("beep.wav", 44100, audio)
 
-        return frame
+    # Create video using ffmpeg
+    subprocess.run([
+        "ffmpeg",
+        "-y",
+        "-framerate", str(fps),
+        "-i", f"{frames_dir}/frame_%04d.png",
+        "-i", "beep.wav",
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        output_path
+    ])
 
-    video = VideoClip(make_frame, duration=duration).set_fps(fps)
-
-    # Audio: sine beep at each peak
-    def sine_beep(frequency=880, length=0.1, rate=44100):
-        t = np.linspace(0, length, int(rate * length))
-        return 0.5 * np.sin(2 * np.pi * frequency * t)
-
-    def beep_audio(t):
-        frame_size = int(44100 / 10)
-        if any(abs(t - p) < 0.05 for p in peaks):
-            return sine_beep()[:frame_size]
-        return np.zeros(frame_size)
-
-    audio = AudioClip(beep_audio, duration=duration, fps=44100)
-    video_with_audio = video.set_audio(audio)
-
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    video_with_audio.write_videofile(output_path, codec='libx264', audio_codec='aac', verbose=False, logger=None)
+    # Cleanup
+    for f in os.listdir(frames_dir):
+        os.remove(os.path.join(frames_dir, f))
+    os.rmdir(frames_dir)
+    os.remove("beep.wav")
