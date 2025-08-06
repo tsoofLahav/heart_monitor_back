@@ -32,8 +32,8 @@ def denoise_ppg(raw_signal, fs):
     normalized_signal = regularize_signal(filtered_signal)
 
     # Step 3: Signal quality check
-    if not is_good_quality(normalized_signal):
-        return None, filtered_signal, True
+    #if not is_good_quality(normalized_signal):
+    #    return None, filtered_signal, True
 
     return normalized_signal, filtered_signal, False
 
