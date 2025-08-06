@@ -40,13 +40,14 @@ def setup_video_route(app):
                 intensities = np.concatenate([last_sec, intensities])
             clean_signal, filtered_signal, not_reading = denoise_ppg(intensities, fps)
 
-            globals.last_sec = clean_signal[-fps:]
+            globals.last_sec = intensities[-fps:]
 
             if not_reading:
                 return jsonify({'not_reading': True})
 
             peaks_in_window = find_peaks(clean_signal, fps)
             final_peaks = [x for x in peaks_in_window if 0.5 <= x <= 10.5]
+            globals.add_to_round_signal(clean_signal)
 
             # 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
 

@@ -37,7 +37,8 @@ def end_session():
             "peaks_count": len(real_peaks),
             "real_peaks": real_peaks,
             "fake_peaks": noisy_peaks,
-            "duration": duration
+            "duration": duration,
+            "clean_signal": globals.round_signal
         }
 
         # Step 4: Reset global session state
