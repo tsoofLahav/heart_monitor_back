@@ -12,7 +12,7 @@ setup_video_route(app)
 
 
 # Health check route
-@app.route('/health', methods=['GET'])
+@app.route('/', methods=['GET'])
 def health():
     return jsonify({"status": "OK"}), 200
 
