@@ -2,7 +2,7 @@ import numpy as np
 from scipy.signal import find_peaks
 
 TARGET_FS = 24  # Hz
-BEAT_CORRELATION_THRESHOLD = 0.5
+BEAT_CORRELATION_THRESHOLD = 0.4
 
 def is_good_quality(signal):
     if len(signal) != 10 * TARGET_FS:
