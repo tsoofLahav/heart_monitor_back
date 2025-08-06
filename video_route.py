@@ -16,8 +16,6 @@ def setup_video_route(app):
         try:
             k = globals.round_duration  # local shorthand for clarity
 
-            # 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
-
             # ---------- Part 1: video process ----------
             file = request.files.get('video')
             if not file:
@@ -32,8 +30,6 @@ def setup_video_route(app):
             if not intensities:
                 raise Exception("No frames were processed.")
 
-            # 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
-
             # ---------- Part 2: signal process ----------
             last_sec = globals.last_sec
             if last_sec is not None:
@@ -43,27 +39,27 @@ def setup_video_route(app):
             globals.last_sec = intensities[-fps:]
 
             if not_reading:
-                return jsonify({'not_reading': True})
+                return jsonify({'not_reading': True}), 200
 
             peaks_in_window = find_peaks(clean_signal, fps)
             final_peaks = [x for x in peaks_in_window if 0.5 <= x <= 10.5]
             globals.add_to_round_signal(clean_signal)
 
-            # 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
-
             # ---------- Part 3: return + store ----------
             globals.add_to_round_peaks(final_peaks)
             globals.round_count += 1
+
             if globals.testing_mode:
                 return jsonify({
                     'clean_signal': clean_signal.tolist(),
                     'filtered_signal': filtered_signal.tolist(),
                     'peaks_in_window': peaks_in_window
-                })
+                }), 200
 
+            # ✅ Always return something
+            return jsonify({'message': 'Processed successfully.'}), 200
 
         except Exception as e:
             logging.exception("Unhandled exception:")
             globals.reset_all()
-            return jsonify({'server_error': True}), 500
-
+            return jsonify({'server_error': True, 'error': str(e)}), 500
